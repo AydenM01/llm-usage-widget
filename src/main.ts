@@ -59,8 +59,8 @@ function createMiniWidgetWindow(): BrowserWindow {
   const preloadPath = path.join(__dirname, 'preload.js');
   
   const win = new BrowserWindow({
-    width: 140,
-    height: 48,
+    width: 210,
+    height: 72,
     show: false,
     frame: false,
     resizable: false,
