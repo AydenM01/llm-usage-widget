@@ -162,18 +162,27 @@ function createPopupWindow(): BrowserWindow {
 }
 
 function getTrayIconPath(): string {
-  // Try SVG first (Z.ai logo), then PNG fallback
-  const svgPath = path.join(__dirname, '..', 'assets', 'zai-logo.svg');
+  // Windows tray icons need PNG/ICO format - SVG won't work
   const pngPath = path.join(__dirname, '..', 'assets', 'icon.png');
   const fs = require('fs');
   
-  if (fs.existsSync(svgPath)) {
-    return svgPath;
-  }
   if (fs.existsSync(pngPath)) {
     return pngPath;
   }
-  return '';
+  return ''; // Fall back to generated icon
+}
+
+function getTrayIcon(): NativeImage {
+  const iconPath = getTrayIconPath();
+  
+  if (iconPath) {
+    const icon = nativeImage.createFromPath(iconPath);
+    // Resize for tray (Windows typically uses 16x16)
+    return icon.resize({ width: 16, height: 16 });
+  }
+  
+  // Generate a simple purple icon as fallback
+  return createTrayIcon();
 }
 
 async function refreshData(): Promise<{ quota: QuotaResponse | null; error: string | null }> {
@@ -330,12 +339,11 @@ app.whenReady().then(() => {
   });
   
   // Create tray (always)
-  const iconPath = getTrayIconPath();
-  const icon = iconPath ? nativeImage.createFromPath(iconPath) : createTrayIcon();
-  log('Using icon from path:', iconPath || '(generated)');
+  const icon = getTrayIcon();
+  log('Using tray icon');
   
   tray = new Tray(icon);
-  tray.setToolTip('LLM Usage Widget');
+  tray.setToolTip('Z.ai Usage Widget');
   tray.on('click', togglePopup);
   tray.on('double-click', togglePopup);
 
