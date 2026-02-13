@@ -45,7 +45,7 @@ function createPopupWindow(): BrowserWindow {
   
   const win = new BrowserWindow({
     width: 320,
-    height: 280,
+    height: 300,
     show: false,
     frame: false,
     resizable: false,
