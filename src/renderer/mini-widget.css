@@ -16,7 +16,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 14px;
+  padding: 10px 14px 10px 20px;
   background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
   border-radius: 10px;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
@@ -25,6 +25,7 @@ body {
   transition: transform 0.1s, box-shadow 0.1s;
   user-select: none;
   -webkit-app-region: drag;
+  position: relative;
 }
 
 .mini-widget:hover {
@@ -34,6 +35,12 @@ body {
 
 .mini-widget:active {
   transform: scale(0.98);
+}
+
+.logo {
+  width: 20px;
+  height: 20px;
+  -webkit-app-region: no-drag;
 }
 
 .label {
@@ -91,22 +98,4 @@ body {
 
 .percentage.safe {
   color: #66bb6a;
-}
-
-/* Draggable handle hint */
-.mini-widget::before {
-  content: '';
-  position: absolute;
-  left: 4px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 3px;
-  height: 16px;
-  background: rgba(255, 255, 255, 0.15);
-  border-radius: 2px;
-}
-
-.mini-widget {
-  position: relative;
-  padding-left: 16px;
 }
