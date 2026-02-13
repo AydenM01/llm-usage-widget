@@ -327,7 +327,13 @@ app.whenReady().then(() => {
     miniWidgetWindow = createMiniWidgetWindow();
   }
 
-  // Auto-refresh
+  // Initial data fetch after windows are ready
+  setTimeout(() => {
+    log('Performing initial data fetch...');
+    updateAllWindows();
+  }, 500);
+
+  // Auto-refresh every 5 minutes
   setInterval(updateAllWindows, REFRESH_INTERVAL);
   
   log('Initialization complete');
