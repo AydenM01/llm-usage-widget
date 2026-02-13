@@ -162,10 +162,16 @@ function createPopupWindow(): BrowserWindow {
 }
 
 function getTrayIconPath(): string {
-  const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
+  // Try SVG first (Z.ai logo), then PNG fallback
+  const svgPath = path.join(__dirname, '..', 'assets', 'zai-logo.svg');
+  const pngPath = path.join(__dirname, '..', 'assets', 'icon.png');
   const fs = require('fs');
-  if (fs.existsSync(iconPath)) {
-    return iconPath;
+  
+  if (fs.existsSync(svgPath)) {
+    return svgPath;
+  }
+  if (fs.existsSync(pngPath)) {
+    return pngPath;
   }
   return '';
 }
@@ -210,6 +216,20 @@ function updateMiniWidget(): void {
       preference: currentMiniWidgetQuota,
       debug: DEBUG
     });
+    
+    // Update tray tooltip to match current quota
+    const quotaLabel = getQuotaLabel(currentMiniWidgetQuota);
+    const percentage = Math.round(targetLimit.percentage);
+    tray?.setToolTip(`Z.ai Usage - ${quotaLabel}: ${percentage}%`);
+  }
+}
+
+function getQuotaLabel(preference: string): string {
+  switch (preference) {
+    case 'weekly': return 'Weekly';
+    case 'monthly': return 'Monthly';
+    case '5h':
+    default: return '5-Hour';
   }
 }
 
