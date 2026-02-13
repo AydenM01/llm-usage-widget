@@ -1,16 +1,25 @@
 // Electron Main Process
 
-import { app, Tray, BrowserWindow, ipcMain, nativeImage, NativeImage } from 'electron';
+import { app, Tray, BrowserWindow, ipcMain, nativeImage, NativeImage, screen } from 'electron';
 import * as path from 'path';
 import { fetchQuota, fetchUsage, QuotaResponse, UsageResponse } from './api';
 
 let tray: Tray | null = null;
 let popupWindow: BrowserWindow | null = null;
+let miniWidgetWindow: BrowserWindow | null = null;
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
 // Check for --debug flag or DEBUG env var
 const DEBUG = process.argv.includes('--debug') || process.env.DEBUG === 'true';
+
+// Mini widget configuration
+const MINI_WIDGET_ENABLED = process.env.MINI_WIDGET !== 'false'; // Enabled by default
+const MINI_WIDGET_QUOTA = process.env.MINI_WIDGET_QUOTA || '5h'; // '5h', 'weekly', or 'monthly'
+const MINI_WIDGET_POSITION = process.env.MINI_WIDGET_POSITION || 'top-right'; // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+
+// Store latest quota data
+let latestQuota: QuotaResponse | null = null;
 
 function log(...args: any[]) {
   if (DEBUG) {
@@ -19,29 +28,102 @@ function log(...args: any[]) {
 }
 
 function createTrayIcon(): NativeImage {
-  // Create a simple 16x16 icon (purple gradient for Z.ai-ish)
   const size = 16;
   const canvas = Buffer.alloc(size * size * 4);
   
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const idx = (y * size + x) * 4;
-      // Simple purple gradient
-      canvas[idx] = 128;     // R
-      canvas[idx + 1] = 90;  // G
-      canvas[idx + 2] = 213; // B
-      canvas[idx + 3] = 255; // A
+      canvas[idx] = 128;
+      canvas[idx + 1] = 90;
+      canvas[idx + 2] = 213;
+      canvas[idx + 3] = 255;
     }
   }
   
   return nativeImage.createFromBuffer(canvas, { width: size, height: size });
 }
 
+function getQuotaUnit(preference: string): number {
+  switch (preference) {
+    case 'weekly': return 6;
+    case 'monthly': return 5;
+    case '5h':
+    default: return 3;
+  }
+}
+
+function createMiniWidgetWindow(): BrowserWindow {
+  log('Creating mini widget window...');
+  
+  const preloadPath = path.join(__dirname, 'preload.js');
+  
+  const win = new BrowserWindow({
+    width: 120,
+    height: 40,
+    show: false,
+    frame: false,
+    resizable: false,
+    transparent: true,
+    alwaysOnTop: true,
+    skipTaskbar: true,
+    focusable: true,
+    webPreferences: {
+      preload: preloadPath,
+      contextIsolation: true,
+      nodeIntegration: false,
+    },
+  });
+
+  const htmlPath = path.join(__dirname, 'renderer', 'mini-widget.html');
+  log('Loading mini widget HTML from:', htmlPath);
+  win.loadFile(htmlPath);
+  
+  // Position the mini widget
+  positionMiniWidget(win);
+
+  win.on('ready-to-show', () => {
+    win.show();
+  });
+
+  return win;
+}
+
+function positionMiniWidget(win: BrowserWindow): void {
+  const primaryDisplay = screen.getPrimaryDisplay();
+  const { width, height } = primaryDisplay.workAreaSize;
+  const widgetSize = win.getSize();
+  
+  let x: number, y: number;
+  
+  switch (MINI_WIDGET_POSITION) {
+    case 'top-left':
+      x = 10;
+      y = 10;
+      break;
+    case 'bottom-left':
+      x = 10;
+      y = height - widgetSize[1] - 10;
+      break;
+    case 'bottom-right':
+      x = width - widgetSize[0] - 10;
+      y = height - widgetSize[1] - 10;
+      break;
+    case 'top-right':
+    default:
+      x = width - widgetSize[0] - 10;
+      y = 10;
+      break;
+  }
+  
+  log('Positioning mini widget at:', x, y);
+  win.setPosition(x, y);
+}
+
 function createPopupWindow(): BrowserWindow {
   log('Creating popup window...');
   
   const preloadPath = path.join(__dirname, 'preload.js');
-  log('Preload path:', preloadPath);
   
   const win = new BrowserWindow({
     width: 320,
@@ -77,7 +159,6 @@ function createPopupWindow(): BrowserWindow {
 }
 
 function getTrayIconPath(): string {
-  // Check for custom icon
   const iconPath = path.join(__dirname, '..', 'assets', 'icon.png');
   const fs = require('fs');
   if (fs.existsSync(iconPath)) {
@@ -90,6 +171,7 @@ async function refreshData(): Promise<{ quota: QuotaResponse | null; error: stri
   log('Refreshing data...');
   try {
     const quota = await fetchQuota();
+    latestQuota = quota;
     log('Quota fetched successfully');
     return { quota, error: null };
   } catch (err) {
@@ -99,14 +181,29 @@ async function refreshData(): Promise<{ quota: QuotaResponse | null; error: stri
   }
 }
 
-async function updatePopup(): Promise<void> {
-  if (!popupWindow) return;
-
-  log('Updating popup with fresh data...');
+async function updateAllWindows(): Promise<void> {
   const { quota, error } = await refreshData();
   
-  log('Sending data-update to renderer');
-  popupWindow.webContents.send('data-update', { quota, error, debug: DEBUG });
+  // Update popup
+  if (popupWindow) {
+    log('Updating popup');
+    popupWindow.webContents.send('data-update', { quota, error, debug: DEBUG });
+  }
+  
+  // Update mini widget
+  if (miniWidgetWindow && quota) {
+    log('Updating mini widget');
+    const targetUnit = getQuotaUnit(MINI_WIDGET_QUOTA);
+    const targetLimit = quota.limits.find(l => l.type === 'TOKENS_LIMIT' && l.unit === targetUnit);
+    
+    if (targetLimit) {
+      miniWidgetWindow.webContents.send('mini-widget-update', {
+        limit: targetLimit,
+        preference: MINI_WIDGET_QUOTA,
+        debug: DEBUG
+      });
+    }
+  }
 }
 
 function togglePopup(): void {
@@ -120,20 +217,30 @@ function togglePopup(): void {
     log('Hiding popup');
     popupWindow.hide();
   } else {
-    // Position near tray (above it on Windows)
+    // Position near mini widget if it exists, otherwise near tray
+    const miniWidgetBounds = miniWidgetWindow?.getBounds();
     const trayBounds = tray?.getBounds();
     const windowSize = popupWindow.getSize();
-    if (trayBounds) {
-      // Center horizontally on tray icon
-      const x = Math.round(trayBounds.x + trayBounds.width / 2 - windowSize[0] / 2);
-      // Position above the tray (Windows taskbar is at bottom)
-      const y = Math.round(trayBounds.y - windowSize[1] - 8);
-      log('Positioning popup at:', x, y);
-      popupWindow.setPosition(x, y);
+    
+    let x: number, y: number;
+    
+    if (miniWidgetBounds) {
+      // Position below mini widget
+      x = Math.round(miniWidgetBounds.x + miniWidgetBounds.width / 2 - windowSize[0] / 2);
+      y = Math.round(miniWidgetBounds.y + miniWidgetBounds.height + 8);
+    } else if (trayBounds) {
+      x = Math.round(trayBounds.x + trayBounds.width / 2 - windowSize[0] / 2);
+      y = Math.round(trayBounds.y - windowSize[1] - 8);
+    } else {
+      x = 100;
+      y = 100;
     }
+    
+    log('Positioning popup at:', x, y);
+    popupWindow.setPosition(x, y);
     log('Showing popup');
     popupWindow.show();
-    updatePopup();
+    updateAllWindows();
   }
 }
 
@@ -151,10 +258,25 @@ ipcMain.handle('hide-window', async () => {
 
 ipcMain.handle('is-debug', () => DEBUG);
 
+ipcMain.handle('toggle-popup', async () => {
+  togglePopup();
+  return true;
+});
+
+// Handle screen resolution changes
+screen.on('display-metrics-changed', () => {
+  if (miniWidgetWindow) {
+    positionMiniWidget(miniWidgetWindow);
+  }
+});
+
 app.whenReady().then(() => {
   log('App ready, initializing...');
+  log('Mini widget enabled:', MINI_WIDGET_ENABLED);
+  log('Mini widget quota:', MINI_WIDGET_QUOTA);
+  log('Mini widget position:', MINI_WIDGET_POSITION);
   
-  // Create tray
+  // Create tray (always)
   const iconPath = getTrayIconPath();
   const icon = iconPath ? nativeImage.createFromPath(iconPath) : createTrayIcon();
   log('Using icon from path:', iconPath || '(generated)');
@@ -162,21 +284,26 @@ app.whenReady().then(() => {
   tray = new Tray(icon);
   tray.setToolTip('LLM Usage Widget');
   tray.on('click', togglePopup);
+  tray.on('double-click', togglePopup);
 
   // Create popup (hidden initially)
   popupWindow = createPopupWindow();
 
+  // Create mini widget if enabled
+  if (MINI_WIDGET_ENABLED) {
+    miniWidgetWindow = createMiniWidgetWindow();
+  }
+
   // Auto-refresh
-  setInterval(updatePopup, REFRESH_INTERVAL);
+  setInterval(updateAllWindows, REFRESH_INTERVAL);
   
   log('Initialization complete');
 });
 
 app.on('window-all-closed', (e: Electron.Event) => {
-  e.preventDefault(); // Don't quit when window closes
+  e.preventDefault();
 });
 
-// On Windows, hide instead of quit
 app.on('before-quit', () => {
   log('App quitting, destroying tray');
   tray?.destroy();

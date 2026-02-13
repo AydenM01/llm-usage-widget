@@ -16,11 +16,20 @@ function log(...args: any[]) {
 }
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  onDataUpdate: (callback: (data: { quota: unknown; error: string | null; debug?: boolean }) => void) => {
+  onDataUpdate: (callback: (data: any) => void) => {
     log('onDataUpdate listener registered');
     ipcRenderer.on('data-update', (_event, data) => {
       log('Received data-update from main');
-      // Update debug flag from data
+      if (data.debug !== undefined) {
+        isDebug = data.debug;
+      }
+      callback(data);
+    });
+  },
+  onMiniWidgetUpdate: (callback: (data: any) => void) => {
+    log('onMiniWidgetUpdate listener registered');
+    ipcRenderer.on('mini-widget-update', (_event, data) => {
+      log('Received mini-widget-update from main');
       if (data.debug !== undefined) {
         isDebug = data.debug;
       }
@@ -30,7 +39,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   refreshData: async () => {
     log('refreshData called');
     const result = await ipcRenderer.invoke('refresh-data');
-    // Update debug flag from result
     if (result.debug !== undefined) {
       isDebug = result.debug;
     }
@@ -40,6 +48,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
   hideWindow: () => {
     log('hideWindow called');
     return ipcRenderer.invoke('hide-window');
+  },
+  togglePopup: () => {
+    log('togglePopup called');
+    return ipcRenderer.invoke('toggle-popup');
   },
 });
 

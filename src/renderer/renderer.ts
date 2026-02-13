@@ -1,4 +1,4 @@
-// Renderer - UI Logic
+// Renderer - Popup UI Logic
 
 interface QuotaLimit {
   type: 'TOKENS_LIMIT' | 'TIME_LIMIT';
@@ -23,12 +23,12 @@ interface DataUpdate {
 }
 
 // Get the API from window
-const api = (window as any).electronAPI;
+const popupApi = (window as any).electronAPI;
 
-let isDebug = false;
+let popupDebug = false;
 
-function log(...args: any[]) {
-  if (isDebug) {
+function popupLog(...args: any[]) {
+  if (popupDebug) {
     console.log('[Z.ai Widget]', ...args);
   }
 }
@@ -39,7 +39,7 @@ const errorEl = document.getElementById('error-message')!;
 const lastUpdatedEl = document.getElementById('last-updated')!;
 const refreshBtn = document.getElementById('refresh-btn')!;
 
-function formatTimeUntilReset(resetTime: number): string {
+function popupFormatTimeUntilReset(resetTime: number): string {
   const now = Date.now();
   const diff = resetTime - now;
 
@@ -60,7 +60,7 @@ function formatTimeUntilReset(resetTime: number): string {
   return `Resets in ${minutes}m`;
 }
 
-function getQuotaInfo(unit: number): { label: string; order: number } {
+function popupGetQuotaInfo(unit: number): { label: string; order: number } {
   switch (unit) {
     case 3:
       return { label: '5-Hour Quota', order: 1 };
@@ -73,23 +73,23 @@ function getQuotaInfo(unit: number): { label: string; order: number } {
   }
 }
 
-function getStatusClass(percentage: number): 'safe' | 'warning' | 'danger' {
+function popupGetStatusClass(percentage: number): 'safe' | 'warning' | 'danger' {
   if (percentage >= 90) return 'danger';
   if (percentage >= 70) return 'warning';
   return 'safe';
 }
 
-function renderQuota(quota: QuotaResponse): void {
-  log('Rendering quota');
+function popupRenderQuota(quota: QuotaResponse): void {
+  popupLog('Rendering quota');
   
   const limits = quota.limits
     .filter(l => l.type === 'TOKENS_LIMIT')
-    .sort((a, b) => getQuotaInfo(a.unit).order - getQuotaInfo(b.unit).order);
+    .sort((a, b) => popupGetQuotaInfo(a.unit).order - popupGetQuotaInfo(b.unit).order);
 
   quotaListEl.innerHTML = limits.map(limit => {
-    const info = getQuotaInfo(limit.unit);
+    const info = popupGetQuotaInfo(limit.unit);
     const percentage = Math.min(100, Math.round(limit.percentage));
-    const statusClass = getStatusClass(percentage);
+    const statusClass = popupGetStatusClass(percentage);
 
     return `
       <div class="quota-item">
@@ -100,24 +100,24 @@ function renderQuota(quota: QuotaResponse): void {
         <div class="progress-bar">
           <div class="progress-fill ${statusClass}" style="width: ${percentage}%"></div>
         </div>
-        <div class="quota-reset">${formatTimeUntilReset(limit.nextResetTime)}</div>
+        <div class="quota-reset">${popupFormatTimeUntilReset(limit.nextResetTime)}</div>
       </div>
     `;
   }).join('');
 }
 
-function updateUI(data: DataUpdate): void {
-  log('updateUI called');
+function popupUpdateUI(data: DataUpdate): void {
+  popupLog('updateUI called');
   
   // Update debug flag
   if (data.debug !== undefined) {
-    isDebug = data.debug;
+    popupDebug = data.debug;
   }
   
   loadingEl.classList.add('hidden');
   
   if (data.error) {
-    log('Error received:', data.error);
+    popupLog('Error received:', data.error);
     errorEl.textContent = data.error;
     errorEl.classList.remove('hidden');
     quotaListEl.classList.add('hidden');
@@ -125,43 +125,43 @@ function updateUI(data: DataUpdate): void {
   }
 
   if (data.quota) {
-    log('Quota data received, rendering...');
+    popupLog('Quota data received, rendering...');
     errorEl.classList.add('hidden');
     quotaListEl.classList.remove('hidden');
-    renderQuota(data.quota);
+    popupRenderQuota(data.quota);
   }
 
   lastUpdatedEl.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
 }
 
 // Check if API exists
-if (!api) {
+if (!popupApi) {
   console.error('[Z.ai Widget] API not found!');
   errorEl.textContent = 'Internal error: API not available';
   errorEl.classList.remove('hidden');
   loadingEl.classList.add('hidden');
 } else {
-  log('Setting up data listener...');
+  popupLog('Setting up data listener...');
   
   // Listen for data updates from main process
-  api.onDataUpdate((data: DataUpdate) => {
-    log('onDataUpdate triggered');
-    updateUI(data);
+  popupApi.onDataUpdate((data: DataUpdate) => {
+    popupLog('onDataUpdate triggered');
+    popupUpdateUI(data);
   });
 
   // Manual refresh
   refreshBtn.addEventListener('click', async () => {
-    log('Manual refresh clicked');
+    popupLog('Manual refresh clicked');
     refreshBtn.style.animation = 'spin 0.5s linear';
     loadingEl.classList.remove('hidden');
     quotaListEl.classList.add('hidden');
     
     try {
-      const data = await api.refreshData();
-      updateUI(data);
+      const data = await popupApi.refreshData();
+      popupUpdateUI(data);
     } catch (err) {
-      log('Refresh error:', err);
-      updateUI({ quota: null, error: String(err) });
+      popupLog('Refresh error:', err);
+      popupUpdateUI({ quota: null, error: String(err) });
     }
     
     setTimeout(() => {
@@ -171,13 +171,13 @@ if (!api) {
 }
 
 // Add spin animation
-const style = document.createElement('style');
-style.textContent = `
+const popupStyle = document.createElement('style');
+popupStyle.textContent = `
   @keyframes spin {
     from { transform: rotate(0deg); }
     to { transform: rotate(360deg); }
   }
 `;
-document.head.appendChild(style);
+document.head.appendChild(popupStyle);
 
-log('Renderer script initialized');
+popupLog('Renderer script initialized');

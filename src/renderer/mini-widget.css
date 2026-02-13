@@ -1,0 +1,90 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+  font-size: 12px;
+  background: transparent;
+  overflow: hidden;
+  -webkit-app-region: no-drag;
+}
+
+.mini-widget {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  transition: transform 0.1s, box-shadow 0.1s;
+  user-select: none;
+}
+
+.mini-widget:hover {
+  transform: scale(1.02);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+
+.mini-widget:active {
+  transform: scale(0.98);
+}
+
+.label {
+  color: #888;
+  font-size: 10px;
+  font-weight: 500;
+  min-width: 28px;
+}
+
+.progress-bar {
+  width: 40px;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.3s ease, background 0.3s ease;
+  width: 0%;
+}
+
+.progress-fill.safe {
+  background: linear-gradient(90deg, #66bb6a, #81c784);
+}
+
+.progress-fill.warning {
+  background: linear-gradient(90deg, #ffa726, #ffb74d);
+}
+
+.progress-fill.danger {
+  background: linear-gradient(90deg, #ef5350, #e57373);
+}
+
+.percentage {
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+  min-width: 30px;
+  text-align: right;
+}
+
+.percentage.warning {
+  color: #ffa726;
+}
+
+.percentage.danger {
+  color: #ef5350;
+}
+
+.percentage.safe {
+  color: #66bb6a;
+}

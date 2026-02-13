@@ -5,9 +5,11 @@
   "main": "dist/main.js",
   "scripts": {
     "build": "tsc && npm run copy-assets",
-    "copy-assets": "node -e \"const fs=require('fs');const p=require('path');['index.html','styles.css'].forEach(f=>{const src=p.join('src/renderer',f);const dest=p.join('dist/renderer',f);fs.mkdirSync(p.dirname(dest),{recursive:true});fs.copyFileSync(src,dest);})\"",
+    "copy-assets": "node -e \"const fs=require('fs');const p=require('path');const files=['index.html','styles.css','mini-widget.html','mini-widget.css'];files.forEach(f=>{const src=p.join('src/renderer',f);const dest=p.join('dist/renderer',f);fs.mkdirSync(p.dirname(dest),{recursive:true});if(fs.existsSync(src))fs.copyFileSync(src,dest);})\"",
     "start": "npm run build && electron .",
     "start:debug": "npm run build && electron . --debug",
+    "start:mini": "npm run build && cross-env MINI_WIDGET=true electron .",
+    "start:no-mini": "npm run build && cross-env MINI_WIDGET=false electron .",
     "dev": "npm run build && electron . --debug",
     "pack": "npm run build && electron-builder --dir",
     "dist": "npm run build && electron-builder"
