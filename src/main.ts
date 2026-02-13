@@ -263,18 +263,18 @@ ipcMain.handle('toggle-popup', async () => {
   return true;
 });
 
-// Handle screen resolution changes
-screen.on('display-metrics-changed', () => {
-  if (miniWidgetWindow) {
-    positionMiniWidget(miniWidgetWindow);
-  }
-});
-
 app.whenReady().then(() => {
   log('App ready, initializing...');
   log('Mini widget enabled:', MINI_WIDGET_ENABLED);
   log('Mini widget quota:', MINI_WIDGET_QUOTA);
   log('Mini widget position:', MINI_WIDGET_POSITION);
+  
+  // Handle screen resolution changes (can only do this after app is ready)
+  screen.on('display-metrics-changed', () => {
+    if (miniWidgetWindow) {
+      positionMiniWidget(miniWidgetWindow);
+    }
+  });
   
   // Create tray (always)
   const iconPath = getTrayIconPath();
