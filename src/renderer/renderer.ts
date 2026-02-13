@@ -16,21 +16,13 @@ interface QuotaResponse {
   level: string;
 }
 
-interface ElectronAPI {
-  onDataUpdate: (callback: (data: { quota: QuotaResponse | null; error: string | null }) => void) => void;
-  refreshData: () => Promise<{ quota: QuotaResponse | null; error: string | null }>;
-  hideWindow: () => Promise<void>;
+interface DataUpdate {
+  quota: QuotaResponse | null;
+  error: string | null;
 }
 
-// Extend Window interface
-declare global {
-  interface Window {
-    electronAPI: ElectronAPI;
-  }
-}
-
-// Make this a module
-export {};
+// Use any for window to avoid module issues
+const electronAPI = (window as any).electronAPI;
 
 const loadingEl = document.getElementById('loading')!;
 const quotaListEl = document.getElementById('quota-list')!;
@@ -105,7 +97,7 @@ function renderQuota(quota: QuotaResponse): void {
   }).join('');
 }
 
-function updateUI(data: { quota: QuotaResponse | null; error: string | null }): void {
+function updateUI(data: DataUpdate): void {
   loadingEl.classList.add('hidden');
   
   if (data.error) {
@@ -125,7 +117,7 @@ function updateUI(data: { quota: QuotaResponse | null; error: string | null }): 
 }
 
 // Listen for data updates from main process
-window.electronAPI.onDataUpdate((data) => {
+electronAPI.onDataUpdate((data: DataUpdate) => {
   updateUI(data);
 });
 
@@ -135,7 +127,7 @@ refreshBtn.addEventListener('click', async () => {
   loadingEl.classList.remove('hidden');
   quotaListEl.classList.add('hidden');
   
-  const data = await window.electronAPI.refreshData();
+  const data = await electronAPI.refreshData();
   updateUI(data);
   
   setTimeout(() => {
