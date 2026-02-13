@@ -1,6 +1,6 @@
-# LLM Usage Widget
+# Z.ai Usage Widget
 
-A Windows system tray widget for monitoring LLM API usage (starting with Z.ai).
+A Windows system tray widget for monitoring Z.ai API usage.
 
 ## Features
 
@@ -10,6 +10,7 @@ A Windows system tray widget for monitoring LLM API usage (starting with Z.ai).
 - Progress bars with color coding (green/yellow/red)
 - Auto-refreshes every 5 minutes
 - Manual refresh button
+- Click any quota in popup to set it as the mini widget display
 
 ## Setup
 
@@ -41,7 +42,7 @@ set ZAI_PROJECT_KEY=your-api-key-here
 ## Running
 
 ### Normal Mode
-System tray only (mini widget enabled by default):
+System tray + mini widget:
 ```bash
 npm start
 ```
@@ -96,17 +97,14 @@ This creates a Windows installer in the `release/` folder.
 1. Run the app - a mini widget appears in the top-right corner (if enabled)
 2. A tray icon also appears in the system tray
 3. Click the mini widget or tray icon to see full usage details
-4. Click the refresh button (↻) to manually update
-5. The widget auto-refreshes every 5 minutes
+4. Click any quota in the popup to set it as the mini widget display
+5. Click the refresh button (↻) to manually update
+6. The widget auto-refreshes every 5 minutes
+7. Drag the mini widget to reposition it anywhere on screen
 
-## Adding Your Own Icon
+## Custom Tray Icon
 
-Replace `assets/icon.png` with your preferred icon (32x32 or 64x64 recommended).
-
-## Supported Providers
-
-- **Z.ai** (current)
-- More coming soon!
+Replace `assets/icon.png` with your preferred icon (32x32 recommended for tray).
 
 ## Tech Stack
 
