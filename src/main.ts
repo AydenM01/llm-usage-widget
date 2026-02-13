@@ -224,10 +224,6 @@ function togglePopup(): void {
     log('Hiding popup');
     popupWindow.hide();
   } else {
-    // Get screen bounds
-    const primaryDisplay = screen.getPrimaryDisplay();
-    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
-    
     // Position near mini widget if it exists, otherwise near tray
     const miniWidgetBounds = miniWidgetWindow?.getBounds();
     const trayBounds = tray?.getBounds();
@@ -236,22 +232,37 @@ function togglePopup(): void {
     let x: number, y: number;
     
     if (miniWidgetBounds) {
-      // Position below mini widget, aligned to the right edge of screen
+      // Get the display where the mini widget currently is
+      const currentDisplay = screen.getDisplayMatching(miniWidgetBounds);
+      const { width: screenWidth, height: screenHeight } = currentDisplay.workAreaSize;
+      const displayBounds = currentDisplay.bounds;
+      
+      // Position below mini widget, aligned to its right edge
       x = Math.round(miniWidgetBounds.x + miniWidgetBounds.width - windowSize[0]);
       y = Math.round(miniWidgetBounds.y + miniWidgetBounds.height + 8);
+      
+      // Keep popup within the current display's work area
+      x = Math.max(displayBounds.x, Math.min(x, displayBounds.x + screenWidth - windowSize[0]));
+      y = Math.max(displayBounds.y, Math.min(y, displayBounds.y + screenHeight - windowSize[1]));
+      
+      log('Mini widget at:', miniWidgetBounds.x, miniWidgetBounds.y);
+      log('Current display bounds:', displayBounds);
+      log('Positioning popup at:', x, y);
     } else if (trayBounds) {
+      const primaryDisplay = screen.getPrimaryDisplay();
+      const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+      
       x = Math.round(trayBounds.x + trayBounds.width / 2 - windowSize[0] / 2);
       y = Math.round(trayBounds.y - windowSize[1] - 8);
+      
+      // Keep popup on screen
+      x = Math.max(0, Math.min(x, screenWidth - windowSize[0]));
+      y = Math.max(0, Math.min(y, screenHeight - windowSize[1]));
     } else {
       x = 100;
       y = 100;
     }
     
-    // Keep popup on screen
-    x = Math.max(0, Math.min(x, screenWidth - windowSize[0]));
-    y = Math.max(0, Math.min(y, screenHeight - windowSize[1]));
-    
-    log('Positioning popup at:', x, y, '(screen:', screenWidth, 'x', screenHeight, ')');
     popupWindow.setPosition(x, y);
     log('Showing popup');
     popupWindow.show();
