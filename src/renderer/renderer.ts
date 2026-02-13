@@ -69,8 +69,9 @@ function getQuotaInfo(unit: number): { label: string; order: number } {
 }
 
 function getStatusClass(percentage: number): 'safe' | 'warning' | 'danger' {
-  if (percentage >= 0.9) return 'danger';
-  if (percentage >= 0.7) return 'warning';
+  // percentage is already 0-100 from API
+  if (percentage >= 90) return 'danger';
+  if (percentage >= 70) return 'warning';
   return 'safe';
 }
 
@@ -81,8 +82,9 @@ function renderQuota(quota: QuotaResponse): void {
 
   quotaListEl.innerHTML = limits.map(limit => {
     const info = getQuotaInfo(limit.unit);
-    const statusClass = getStatusClass(limit.percentage);
-    const percentage = Math.round(limit.percentage * 100);
+    // API returns percentage as whole number (7 = 7%, not 0.07)
+    const percentage = Math.min(100, Math.round(limit.percentage));
+    const statusClass = getStatusClass(percentage);
 
     return `
       <div class="quota-item">

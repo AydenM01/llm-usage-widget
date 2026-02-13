@@ -91,11 +91,14 @@ function togglePopup(): void {
   if (popupWindow.isVisible()) {
     popupWindow.hide();
   } else {
-    // Position near tray
+    // Position near tray (above it on Windows)
     const trayBounds = tray?.getBounds();
+    const windowSize = popupWindow.getSize();
     if (trayBounds) {
-      const x = Math.round(trayBounds.x + trayBounds.width / 2 - 160);
-      const y = Math.round(trayBounds.y + trayBounds.height + 8);
+      // Center horizontally on tray icon
+      const x = Math.round(trayBounds.x + trayBounds.width / 2 - windowSize[0] / 2);
+      // Position above the tray (Windows taskbar is at bottom)
+      const y = Math.round(trayBounds.y - windowSize[1] - 8);
       popupWindow.setPosition(x, y);
     }
     popupWindow.show();
