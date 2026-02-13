@@ -23,9 +23,9 @@ interface DataUpdate {
   error: string | null;
 }
 
-// Use any for window to avoid module issues
-const electronAPI = (window as any).electronAPI;
-console.log('[Z.ai Widget] electronAPI available:', !!electronAPI);
+// Get the API from window - use different variable name to avoid conflict
+const api = (window as any).electronAPI;
+console.log('[Z.ai Widget] API available:', !!api);
 
 const loadingEl = document.getElementById('loading')!;
 const quotaListEl = document.getElementById('quota-list')!;
@@ -75,7 +75,6 @@ function getQuotaInfo(unit: number): { label: string; order: number } {
 }
 
 function getStatusClass(percentage: number): 'safe' | 'warning' | 'danger' {
-  // percentage is already 0-100 from API
   if (percentage >= 90) return 'danger';
   if (percentage >= 70) return 'warning';
   return 'safe';
@@ -92,7 +91,6 @@ function renderQuota(quota: QuotaResponse): void {
 
   quotaListEl.innerHTML = limits.map(limit => {
     const info = getQuotaInfo(limit.unit);
-    // API returns percentage as whole number (7 = 7%, not 0.07)
     const percentage = Math.min(100, Math.round(limit.percentage));
     const statusClass = getStatusClass(percentage);
 
@@ -136,9 +134,9 @@ function updateUI(data: DataUpdate): void {
   lastUpdatedEl.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
 }
 
-// Check if electronAPI exists
-if (!electronAPI) {
-  console.error('[Z.ai Widget] electronAPI not found! Preload script may have failed.');
+// Check if API exists
+if (!api) {
+  console.error('[Z.ai Widget] API not found! Preload script may have failed.');
   errorEl.textContent = 'Internal error: API not available';
   errorEl.classList.remove('hidden');
   loadingEl.classList.add('hidden');
@@ -146,7 +144,7 @@ if (!electronAPI) {
   console.log('[Z.ai Widget] Setting up data listener...');
   
   // Listen for data updates from main process
-  electronAPI.onDataUpdate((data: DataUpdate) => {
+  api.onDataUpdate((data: DataUpdate) => {
     console.log('[Z.ai Widget] onDataUpdate triggered');
     updateUI(data);
   });
@@ -159,7 +157,7 @@ if (!electronAPI) {
     quotaListEl.classList.add('hidden');
     
     try {
-      const data = await electronAPI.refreshData();
+      const data = await api.refreshData();
       console.log('[Z.ai Widget] Refresh data result:', data);
       updateUI(data);
     } catch (err) {
