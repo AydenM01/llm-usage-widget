@@ -22,11 +22,15 @@ interface ElectronAPI {
   hideWindow: () => Promise<void>;
 }
 
+// Extend Window interface
 declare global {
   interface Window {
     electronAPI: ElectronAPI;
   }
 }
+
+// Make this a module
+export {};
 
 const loadingEl = document.getElementById('loading')!;
 const quotaListEl = document.getElementById('quota-list')!;
