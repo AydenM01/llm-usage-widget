@@ -1,5 +1,7 @@
 // Renderer - UI Logic
 
+console.log('[Z.ai Widget] Renderer script starting...');
+
 interface QuotaLimit {
   type: 'TOKENS_LIMIT' | 'TIME_LIMIT';
   unit: number;
@@ -23,12 +25,20 @@ interface DataUpdate {
 
 // Use any for window to avoid module issues
 const electronAPI = (window as any).electronAPI;
+console.log('[Z.ai Widget] electronAPI available:', !!electronAPI);
 
 const loadingEl = document.getElementById('loading')!;
 const quotaListEl = document.getElementById('quota-list')!;
 const errorEl = document.getElementById('error-message')!;
 const lastUpdatedEl = document.getElementById('last-updated')!;
 const refreshBtn = document.getElementById('refresh-btn')!;
+
+console.log('[Z.ai Widget] DOM elements found:', {
+  loadingEl: !!loadingEl,
+  quotaListEl: !!quotaListEl,
+  errorEl: !!errorEl,
+  refreshBtn: !!refreshBtn
+});
 
 function formatTimeUntilReset(resetTime: number): string {
   const now = Date.now();
@@ -72,9 +82,13 @@ function getStatusClass(percentage: number): 'safe' | 'warning' | 'danger' {
 }
 
 function renderQuota(quota: QuotaResponse): void {
+  console.log('[Z.ai Widget] Rendering quota:', JSON.stringify(quota, null, 2));
+  
   const limits = quota.limits
     .filter(l => l.type === 'TOKENS_LIMIT')
     .sort((a, b) => getQuotaInfo(a.unit).order - getQuotaInfo(b.unit).order);
+
+  console.log('[Z.ai Widget] Filtered limits:', limits.length);
 
   quotaListEl.innerHTML = limits.map(limit => {
     const info = getQuotaInfo(limit.unit);
@@ -98,9 +112,12 @@ function renderQuota(quota: QuotaResponse): void {
 }
 
 function updateUI(data: DataUpdate): void {
+  console.log('[Z.ai Widget] updateUI called with:', JSON.stringify(data, null, 2));
+  
   loadingEl.classList.add('hidden');
   
   if (data.error) {
+    console.error('[Z.ai Widget] Error received:', data.error);
     errorEl.textContent = data.error;
     errorEl.classList.remove('hidden');
     quotaListEl.classList.add('hidden');
@@ -108,32 +125,53 @@ function updateUI(data: DataUpdate): void {
   }
 
   if (data.quota) {
+    console.log('[Z.ai Widget] Quota data received, rendering...');
     errorEl.classList.add('hidden');
     quotaListEl.classList.remove('hidden');
     renderQuota(data.quota);
+  } else {
+    console.warn('[Z.ai Widget] No quota data in update');
   }
 
   lastUpdatedEl.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;
 }
 
-// Listen for data updates from main process
-electronAPI.onDataUpdate((data: DataUpdate) => {
-  updateUI(data);
-});
+// Check if electronAPI exists
+if (!electronAPI) {
+  console.error('[Z.ai Widget] electronAPI not found! Preload script may have failed.');
+  errorEl.textContent = 'Internal error: API not available';
+  errorEl.classList.remove('hidden');
+  loadingEl.classList.add('hidden');
+} else {
+  console.log('[Z.ai Widget] Setting up data listener...');
+  
+  // Listen for data updates from main process
+  electronAPI.onDataUpdate((data: DataUpdate) => {
+    console.log('[Z.ai Widget] onDataUpdate triggered');
+    updateUI(data);
+  });
 
-// Manual refresh
-refreshBtn.addEventListener('click', async () => {
-  refreshBtn.style.animation = 'spin 0.5s linear';
-  loadingEl.classList.remove('hidden');
-  quotaListEl.classList.add('hidden');
-  
-  const data = await electronAPI.refreshData();
-  updateUI(data);
-  
-  setTimeout(() => {
-    refreshBtn.style.animation = '';
-  }, 500);
-});
+  // Manual refresh
+  refreshBtn.addEventListener('click', async () => {
+    console.log('[Z.ai Widget] Manual refresh clicked');
+    refreshBtn.style.animation = 'spin 0.5s linear';
+    loadingEl.classList.remove('hidden');
+    quotaListEl.classList.add('hidden');
+    
+    try {
+      const data = await electronAPI.refreshData();
+      console.log('[Z.ai Widget] Refresh data result:', data);
+      updateUI(data);
+    } catch (err) {
+      console.error('[Z.ai Widget] Refresh error:', err);
+      updateUI({ quota: null, error: String(err) });
+    }
+    
+    setTimeout(() => {
+      refreshBtn.style.animation = '';
+    }, 500);
+  });
+}
 
 // Add spin animation
 const style = document.createElement('style');
@@ -144,3 +182,5 @@ style.textContent = `
   }
 `;
 document.head.appendChild(style);
+
+console.log('[Z.ai Widget] Renderer script initialized');
