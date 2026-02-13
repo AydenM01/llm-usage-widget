@@ -37,6 +37,11 @@ function createTrayIcon(): NativeImage {
 
 function createPopupWindow(): BrowserWindow {
   log('Creating popup window...');
+  log('__dirname is:', __dirname);
+  
+  const preloadPath = path.join(__dirname, 'preload.js');
+  log('Preload path:', preloadPath);
+  log('Preload file exists:', require('fs').existsSync(preloadPath));
   
   const win = new BrowserWindow({
     width: 320,
@@ -48,7 +53,7 @@ function createPopupWindow(): BrowserWindow {
     alwaysOnTop: true,
     skipTaskbar: true,
     webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
+      preload: preloadPath,
       contextIsolation: true,
       nodeIntegration: false,
     },
