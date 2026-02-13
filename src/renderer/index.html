@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>LLM Usage</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="../../assets/icon.png" alt="Z.ai" class="logo" onerror="this.style.display='none'">
+      <span class="title">Z.ai Usage</span>
+      <button class="refresh-btn" id="refresh-btn" title="Refresh">↻</button>
+    </div>
+    
+    <div id="error-message" class="error hidden"></div>
+    
+    <div id="loading" class="loading">Loading...</div>
+    
+    <div id="quota-list" class="quota-list hidden">
+      <!-- Quota items will be injected here -->
+    </div>
+    
+    <div class="footer">
+      <span id="last-updated">Last updated: --</span>
+    </div>
+  </div>
+
+  <script src="renderer.js"></script>
+</body>
+</html>
