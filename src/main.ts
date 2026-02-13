@@ -8,7 +8,9 @@ let tray: Tray | null = null;
 let popupWindow: BrowserWindow | null = null;
 
 const REFRESH_INTERVAL = 5 * 60 * 1000; // 5 minutes
-const DEBUG = true; // Enable debug mode
+
+// Check for --debug flag or DEBUG env var
+const DEBUG = process.argv.includes('--debug') || process.env.DEBUG === 'true';
 
 function log(...args: any[]) {
   if (DEBUG) {
@@ -37,11 +39,9 @@ function createTrayIcon(): NativeImage {
 
 function createPopupWindow(): BrowserWindow {
   log('Creating popup window...');
-  log('__dirname is:', __dirname);
   
   const preloadPath = path.join(__dirname, 'preload.js');
   log('Preload path:', preloadPath);
-  log('Preload file exists:', require('fs').existsSync(preloadPath));
   
   const win = new BrowserWindow({
     width: 320,
@@ -63,19 +63,10 @@ function createPopupWindow(): BrowserWindow {
   log('Loading HTML from:', htmlPath);
   win.loadFile(htmlPath);
   
-  // Open DevTools in debug mode (detached so it doesn't affect popup size)
+  // Open DevTools only in debug mode
   if (DEBUG) {
     win.webContents.openDevTools({ mode: 'detach' });
   }
-  
-  // Log when page finishes loading
-  win.webContents.on('did-finish-load', () => {
-    log('Page finished loading');
-  });
-  
-  win.webContents.on('did-fail-load', (event, errorCode, errorDescription) => {
-    log('Page failed to load:', errorCode, errorDescription);
-  });
 
   // Hide when clicking outside
   win.on('blur', () => {
@@ -99,7 +90,7 @@ async function refreshData(): Promise<{ quota: QuotaResponse | null; error: stri
   log('Refreshing data...');
   try {
     const quota = await fetchQuota();
-    log('Quota fetched successfully:', JSON.stringify(quota, null, 2));
+    log('Quota fetched successfully');
     return { quota, error: null };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
@@ -109,16 +100,13 @@ async function refreshData(): Promise<{ quota: QuotaResponse | null; error: stri
 }
 
 async function updatePopup(): Promise<void> {
-  if (!popupWindow) {
-    log('updatePopup called but no window exists');
-    return;
-  }
+  if (!popupWindow) return;
 
   log('Updating popup with fresh data...');
   const { quota, error } = await refreshData();
   
   log('Sending data-update to renderer');
-  popupWindow.webContents.send('data-update', { quota, error });
+  popupWindow.webContents.send('data-update', { quota, error, debug: DEBUG });
 }
 
 function togglePopup(): void {
@@ -153,13 +141,15 @@ function togglePopup(): void {
 ipcMain.handle('refresh-data', async () => {
   log('IPC refresh-data called');
   const { quota, error } = await refreshData();
-  return { quota, error };
+  return { quota, error, debug: DEBUG };
 });
 
 ipcMain.handle('hide-window', async () => {
   log('IPC hide-window called');
   popupWindow?.hide();
 });
+
+ipcMain.handle('is-debug', () => DEBUG);
 
 app.whenReady().then(() => {
   log('App ready, initializing...');

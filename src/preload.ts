@@ -2,26 +2,45 @@
 
 import { contextBridge, ipcRenderer } from 'electron';
 
-console.log('[Preload] Script starting...');
+let isDebug = false;
+
+// Check debug mode on startup
+ipcRenderer.invoke('is-debug').then((debug: boolean) => {
+  isDebug = debug;
+});
+
+function log(...args: any[]) {
+  if (isDebug) {
+    console.log('[Preload]', ...args);
+  }
+}
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  onDataUpdate: (callback: (data: { quota: unknown; error: string | null }) => void) => {
-    console.log('[Preload] onDataUpdate listener registered');
+  onDataUpdate: (callback: (data: { quota: unknown; error: string | null; debug?: boolean }) => void) => {
+    log('onDataUpdate listener registered');
     ipcRenderer.on('data-update', (_event, data) => {
-      console.log('[Preload] Received data-update from main:', JSON.stringify(data, null, 2));
+      log('Received data-update from main');
+      // Update debug flag from data
+      if (data.debug !== undefined) {
+        isDebug = data.debug;
+      }
       callback(data);
     });
   },
   refreshData: async () => {
-    console.log('[Preload] refreshData called');
+    log('refreshData called');
     const result = await ipcRenderer.invoke('refresh-data');
-    console.log('[Preload] refreshData result:', JSON.stringify(result, null, 2));
+    // Update debug flag from result
+    if (result.debug !== undefined) {
+      isDebug = result.debug;
+    }
+    log('refreshData result received');
     return result;
   },
   hideWindow: () => {
-    console.log('[Preload] hideWindow called');
+    log('hideWindow called');
     return ipcRenderer.invoke('hide-window');
   },
 });
 
-console.log('[Preload] electronAPI exposed to window');
+log('electronAPI exposed to window');

@@ -42,9 +42,17 @@ set ZAI_PROJECT_KEY=your-api-key-here
 ZAI_PROJECT_KEY=your-api-key-here
 ```
 
-### Development
+### Running
 
+**Normal mode (no debug console):**
 ```bash
+npm start
+```
+
+**Debug mode (with DevTools console):**
+```bash
+npm run start:debug
+# or
 npm run dev
 ```
 

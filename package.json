@@ -4,12 +4,13 @@
   "description": "System tray widget for monitoring LLM API usage",
   "main": "dist/main.js",
   "scripts": {
-    "build": "tsc && tsc --project tsconfig.renderer.json && pnpm run copy-assets",
+    "build": "tsc && npm run copy-assets",
     "copy-assets": "node -e \"const fs=require('fs');const p=require('path');['index.html','styles.css'].forEach(f=>{const src=p.join('src/renderer',f);const dest=p.join('dist/renderer',f);fs.mkdirSync(p.dirname(dest),{recursive:true});fs.copyFileSync(src,dest);})\"",
-    "start": "pnpm run build && electron .",
-    "dev": "pnpm run build && electron .",
-    "pack": "pnpm run build && electron-builder --dir",
-    "dist": "pnpm run build && electron-builder"
+    "start": "npm run build && electron .",
+    "start:debug": "npm run build && electron . --debug",
+    "dev": "npm run build && electron . --debug",
+    "pack": "npm run build && electron-builder --dir",
+    "dist": "npm run build && electron-builder"
   },
   "author": "Ayden Marshall",
   "license": "MIT",
