@@ -53,6 +53,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
     log('togglePopup called');
     return ipcRenderer.invoke('toggle-popup');
   },
+  setMiniWidgetQuota: (quota: string) => {
+    log('setMiniWidgetQuota called:', quota);
+    return ipcRenderer.invoke('set-mini-widget-quota', quota);
+  },
 });
 
 log('electronAPI exposed to window');

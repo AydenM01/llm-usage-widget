@@ -20,6 +20,7 @@ interface DataUpdate {
   quota: QuotaResponse | null;
   error: string | null;
   debug?: boolean;
+  currentQuota?: string;
 }
 
 // Get the API from window
@@ -60,16 +61,16 @@ function popupFormatTimeUntilReset(resetTime: number): string {
   return `Resets in ${minutes}m`;
 }
 
-function popupGetQuotaInfo(unit: number): { label: string; order: number } {
+function popupGetQuotaInfo(unit: number): { label: string; order: number; quotaType: string } {
   switch (unit) {
     case 3:
-      return { label: '5-Hour Quota', order: 1 };
+      return { label: '5-Hour Quota', order: 1, quotaType: '5h' };
     case 6:
-      return { label: 'Weekly Quota', order: 2 };
+      return { label: 'Weekly Quota', order: 2, quotaType: 'weekly' };
     case 5:
-      return { label: 'Monthly Quota', order: 3 };
+      return { label: 'Monthly Quota', order: 3, quotaType: 'monthly' };
     default:
-      return { label: `Quota (${unit})`, order: 99 };
+      return { label: `Quota (${unit})`, order: 99, quotaType: `${unit}` };
   }
 }
 
@@ -79,8 +80,8 @@ function popupGetStatusClass(percentage: number): 'safe' | 'warning' | 'danger' 
   return 'safe';
 }
 
-function popupRenderQuota(quota: QuotaResponse): void {
-  popupLog('Rendering quota');
+function popupRenderQuota(quota: QuotaResponse, selectedQuota: string): void {
+  popupLog('Rendering quota, selected:', selectedQuota);
   
   const limits = quota.limits
     .filter(l => l.type === 'TOKENS_LIMIT')
@@ -90,9 +91,10 @@ function popupRenderQuota(quota: QuotaResponse): void {
     const info = popupGetQuotaInfo(limit.unit);
     const percentage = Math.min(100, Math.round(limit.percentage));
     const statusClass = popupGetStatusClass(percentage);
+    const isSelected = info.quotaType === selectedQuota;
 
     return `
-      <div class="quota-item">
+      <div class="quota-item ${isSelected ? 'selected' : ''}" data-quota="${info.quotaType}">
         <div class="quota-header">
           <span class="quota-label">${info.label}</span>
           <span class="quota-percentage ${statusClass}">${percentage}%</span>
@@ -104,6 +106,19 @@ function popupRenderQuota(quota: QuotaResponse): void {
       </div>
     `;
   }).join('');
+  
+  // Add click handlers to quota items
+  document.querySelectorAll('.quota-item').forEach(item => {
+    item.addEventListener('click', async (e) => {
+      const quotaType = (item as HTMLElement).dataset.quota;
+      popupLog('Quota item clicked:', quotaType);
+      if (quotaType && popupApi) {
+        await popupApi.setMiniWidgetQuota(quotaType);
+        // Re-render with new selection
+        popupRenderQuota(quota, quotaType);
+      }
+    });
+  });
 }
 
 function popupUpdateUI(data: DataUpdate): void {
@@ -128,7 +143,7 @@ function popupUpdateUI(data: DataUpdate): void {
     popupLog('Quota data received, rendering...');
     errorEl.classList.add('hidden');
     quotaListEl.classList.remove('hidden');
-    popupRenderQuota(data.quota);
+    popupRenderQuota(data.quota, data.currentQuota || '5h');
   }
 
   lastUpdatedEl.textContent = `Last updated: ${new Date().toLocaleTimeString()}`;

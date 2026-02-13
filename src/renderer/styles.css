@@ -79,6 +79,19 @@ body {
   background: rgba(255, 255, 255, 0.05);
   border-radius: 8px;
   padding: 12px;
+  cursor: pointer;
+  transition: background 0.15s, transform 0.1s;
+  border: 2px solid transparent;
+}
+
+.quota-item:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateX(2px);
+}
+
+.quota-item.selected {
+  border-color: rgba(128, 90, 213, 0.6);
+  background: rgba(128, 90, 213, 0.15);
 }
 
 .quota-header {

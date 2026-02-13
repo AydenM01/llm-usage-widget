@@ -15,8 +15,11 @@ const DEBUG = process.argv.includes('--debug') || process.env.DEBUG === 'true';
 
 // Mini widget configuration
 const MINI_WIDGET_ENABLED = process.env.MINI_WIDGET !== 'false'; // Enabled by default
-const MINI_WIDGET_QUOTA = process.env.MINI_WIDGET_QUOTA || '5h'; // '5h', 'weekly', or 'monthly'
+const INITIAL_MINI_WIDGET_QUOTA = process.env.MINI_WIDGET_QUOTA || '5h'; // '5h', 'weekly', or 'monthly'
 const MINI_WIDGET_POSITION = process.env.MINI_WIDGET_POSITION || 'top-right'; // 'top-left', 'top-right', 'bottom-left', 'bottom-right'
+
+// Current quota preference (can be changed by clicking in popup)
+let currentMiniWidgetQuota = INITIAL_MINI_WIDGET_QUOTA;
 
 // Store latest quota data
 let latestQuota: QuotaResponse | null = null;
@@ -187,22 +190,26 @@ async function updateAllWindows(): Promise<void> {
   // Update popup
   if (popupWindow) {
     log('Updating popup');
-    popupWindow.webContents.send('data-update', { quota, error, debug: DEBUG });
+    popupWindow.webContents.send('data-update', { quota, error, debug: DEBUG, currentQuota: currentMiniWidgetQuota });
   }
   
   // Update mini widget
-  if (miniWidgetWindow && quota) {
-    log('Updating mini widget');
-    const targetUnit = getQuotaUnit(MINI_WIDGET_QUOTA);
-    const targetLimit = quota.limits.find(l => l.type === 'TOKENS_LIMIT' && l.unit === targetUnit);
-    
-    if (targetLimit) {
-      miniWidgetWindow.webContents.send('mini-widget-update', {
-        limit: targetLimit,
-        preference: MINI_WIDGET_QUOTA,
-        debug: DEBUG
-      });
-    }
+  updateMiniWidget();
+}
+
+function updateMiniWidget(): void {
+  if (!miniWidgetWindow || !latestQuota) return;
+  
+  log('Updating mini widget with quota:', currentMiniWidgetQuota);
+  const targetUnit = getQuotaUnit(currentMiniWidgetQuota);
+  const targetLimit = latestQuota.limits.find(l => l.type === 'TOKENS_LIMIT' && l.unit === targetUnit);
+  
+  if (targetLimit) {
+    miniWidgetWindow.webContents.send('mini-widget-update', {
+      limit: targetLimit,
+      preference: currentMiniWidgetQuota,
+      debug: DEBUG
+    });
   }
 }
 
@@ -271,10 +278,17 @@ ipcMain.handle('toggle-popup', async () => {
   return true;
 });
 
+ipcMain.handle('set-mini-widget-quota', async (_event, quota: string) => {
+  log('IPC set-mini-widget-quota called:', quota);
+  currentMiniWidgetQuota = quota;
+  updateMiniWidget();
+  return true;
+});
+
 app.whenReady().then(() => {
   log('App ready, initializing...');
   log('Mini widget enabled:', MINI_WIDGET_ENABLED);
-  log('Mini widget quota:', MINI_WIDGET_QUOTA);
+  log('Mini widget quota:', currentMiniWidgetQuota);
   log('Mini widget position:', MINI_WIDGET_POSITION);
   
   // Handle screen resolution changes (can only do this after app is ready)
