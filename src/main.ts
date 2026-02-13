@@ -217,6 +217,10 @@ function togglePopup(): void {
     log('Hiding popup');
     popupWindow.hide();
   } else {
+    // Get screen bounds
+    const primaryDisplay = screen.getPrimaryDisplay();
+    const { width: screenWidth, height: screenHeight } = primaryDisplay.workAreaSize;
+    
     // Position near mini widget if it exists, otherwise near tray
     const miniWidgetBounds = miniWidgetWindow?.getBounds();
     const trayBounds = tray?.getBounds();
@@ -225,8 +229,8 @@ function togglePopup(): void {
     let x: number, y: number;
     
     if (miniWidgetBounds) {
-      // Position below mini widget
-      x = Math.round(miniWidgetBounds.x + miniWidgetBounds.width / 2 - windowSize[0] / 2);
+      // Position below mini widget, aligned to the right edge of screen
+      x = Math.round(miniWidgetBounds.x + miniWidgetBounds.width - windowSize[0]);
       y = Math.round(miniWidgetBounds.y + miniWidgetBounds.height + 8);
     } else if (trayBounds) {
       x = Math.round(trayBounds.x + trayBounds.width / 2 - windowSize[0] / 2);
@@ -236,7 +240,11 @@ function togglePopup(): void {
       y = 100;
     }
     
-    log('Positioning popup at:', x, y);
+    // Keep popup on screen
+    x = Math.max(0, Math.min(x, screenWidth - windowSize[0]));
+    y = Math.max(0, Math.min(y, screenHeight - windowSize[1]));
+    
+    log('Positioning popup at:', x, y, '(screen:', screenWidth, 'x', screenHeight, ')');
     popupWindow.setPosition(x, y);
     log('Showing popup');
     popupWindow.show();
