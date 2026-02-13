@@ -6,29 +6,30 @@
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-  font-size: 12px;
+  font-size: 13px;
   background: transparent;
   overflow: hidden;
-  -webkit-app-region: no-drag;
+  user-select: none;
 }
 
 .mini-widget {
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 8px 10px;
+  gap: 8px;
+  padding: 10px 14px;
   background: linear-gradient(135deg, rgba(26, 26, 46, 0.95) 0%, rgba(22, 33, 62, 0.95) 100%);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.1);
   cursor: pointer;
   transition: transform 0.1s, box-shadow 0.1s;
   user-select: none;
+  -webkit-app-region: drag;
 }
 
 .mini-widget:hover {
   transform: scale(1.02);
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.45);
 }
 
 .mini-widget:active {
@@ -37,22 +38,24 @@ body {
 
 .label {
   color: #888;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
-  min-width: 28px;
+  min-width: 24px;
+  -webkit-app-region: no-drag;
 }
 
 .progress-bar {
-  width: 40px;
-  height: 6px;
+  width: 50px;
+  height: 8px;
   background: rgba(255, 255, 255, 0.1);
-  border-radius: 3px;
+  border-radius: 4px;
   overflow: hidden;
+  -webkit-app-region: no-drag;
 }
 
 .progress-fill {
   height: 100%;
-  border-radius: 3px;
+  border-radius: 4px;
   transition: width 0.3s ease, background 0.3s ease;
   width: 0%;
 }
@@ -71,10 +74,11 @@ body {
 
 .percentage {
   color: #fff;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
-  min-width: 30px;
+  min-width: 36px;
   text-align: right;
+  -webkit-app-region: no-drag;
 }
 
 .percentage.warning {
@@ -87,4 +91,22 @@ body {
 
 .percentage.safe {
   color: #66bb6a;
+}
+
+/* Draggable handle hint */
+.mini-widget::before {
+  content: '';
+  position: absolute;
+  left: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 2px;
+}
+
+.mini-widget {
+  position: relative;
+  padding-left: 16px;
 }
